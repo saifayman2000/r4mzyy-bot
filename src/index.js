@@ -156,6 +156,5 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 
-
-// تشغيل البوت
-client.login(process.env.TOKEN);
+const token = process.env.DISCORD_TOKEN;
+client.login(token);
