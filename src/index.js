@@ -10,6 +10,8 @@ const {
   EmbedBuilder
 } = require('discord.js');
 
+const axios = require('axios');
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
@@ -48,8 +50,11 @@ const characters = [
 ];
 
 const ALLOWED_CHANNEL_ID = '1376570668929515651';
+const ALLOWED_CHANNEL_ID_AI = '1380368205637488850';
 
 const userSelections = {};
+
+
 
 client.on('messageCreate', message => {
   // تأكد إن البوت متعمله mention وإن الرسالة فيها "hi"
@@ -155,6 +160,41 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
+client.on('messageCreate', async (message) => {
+  // تجاهل رسائل البوت أو الرسائل خارج التشانل المحددة
+  if (message.author.bot || message.channel.id !== ALLOWED_CHANNEL_ID_AI) return;
 
-const token = process.env.DISCORD_TOKEN;
-client.login(token);
+  try {
+    const userMessage = message.content;
+
+    // إرسال الرسالة لـ ChatGPT
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: userMessage }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const reply = response.data.choices[0].message.content;
+
+    // رد البوت في نفس التشانل
+    message.reply(reply);
+  } catch (error) {
+    console.error('❌ Error:', error);
+    message.reply('حصل خطأ  😓');
+  }
+});
+
+
+
+
+
+// تشغيل البوت
+client.login(DISCORD_TOKEN);
