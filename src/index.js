@@ -9,6 +9,8 @@ const {
   Events,
   EmbedBuilder
 } = require('discord.js');
+const { OpenAI } = require("openai")
+
 
 const axios = require('axios');
 
@@ -160,41 +162,83 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
+// async function sendOpenAIRequest(messageContent) {
+//   const maxRetries = 3;
+//   let attempt = 0;
+
+//   while (attempt < maxRetries) {
+//     try {
+//       const response = await axios.post(
+//         'https://api.openai.com/v1/chat/completions',
+//         {
+//           model: 'gpt-3.5-turbo',
+//           messages: [{ role: 'user', content: messageContent }],
+//         },
+//         {
+//           headers: {
+//             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+//             'Content-Type': 'application/json',
+//           },
+//         }
+//       );
+//       return response.data.choices[0].message.content;
+//     } catch (error) {
+//       if (error.response && error.response.status === 429) {
+//         attempt++;
+//         console.log(`Rate limit hit, retrying attempt ${attempt}...`);
+//         await new Promise(r => setTimeout(r, 2000 * attempt)); // تأخير متزايد
+//       } else {
+//         throw error;
+//       }
+//     }
+//   }
+//   throw new Error('Rate limit exceeded, please try again later.');
+// }
+
+// client.on('messageCreate', async (message) => {
+//   if (message.author.bot || message.channel.id !== ALLOWED_CHANNEL_ID_AI) return;
+
+//   try {
+//     const reply = await sendOpenAIRequest(message.content);
+//     await message.reply(reply);
+//   } catch (error) {
+//     console.error('❌ Error:', error);
+//     await message.reply('حصل خطأ بسبب تجاوز حد الاستخدام، جرب تاني بعد شوية.');
+//   }
+// });
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+})
+
+
 client.on('messageCreate', async (message) => {
-  // تجاهل رسائل البوت أو الرسائل خارج التشانل المحددة
-  if (message.author.bot || message.channel.id !== ALLOWED_CHANNEL_ID_AI) return;
+  if (message.author.bot) return;
+  if (!ALLOWED_CHANNEL_ID_AI.includes(message.channelId)) return 
 
-  try {
-    const userMessage = message.content;
+  const response = await openai.chat.completions
+    .create({
+      model: 'gpt-4',
+      messages: [
+        {
+          // name
+          role: 'system',
+          content: 'chat gpt is a freun'
 
-    // إرسال الرسالة لـ ChatGPT
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: userMessage }],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
         },
-      }
-    );
-
-    const reply = response.data.choices[0].message.content;
-
-    // رد البوت في نفس التشانل
-    message.reply(reply);
-  } catch (error) {
-    console.error('❌ Error:', error);
-    message.reply('حصل خطأ  😓');
-  }
+        {
+          // name
+          role: 'user',
+          content: message.content,
+        }
+      ]
+    })
+    .catch((error) => console.error('erorr:\n', error))
+  message.reply(response.choices[0].message.content)
 });
 
 
 
 
-
 // تشغيل البوت
-client.login(DISCORD_TOKEN);
+client.login(process.env.DISCORD_TOKEN);
