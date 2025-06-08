@@ -9,7 +9,7 @@ const {
   Events,
   EmbedBuilder
 } = require('discord.js');
-const { OpenAI } = require("openai")
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 
 const axios = require('axios');
@@ -56,14 +56,6 @@ const ALLOWED_CHANNEL_ID_AI = '1380368205637488850';
 
 const userSelections = {};
 
-
-
-client.on('messageCreate', message => {
-  // تأكد إن البوت متعمله mention وإن الرسالة فيها "hi"
-  if (message.mentions.has(client.user)) {
-    message.reply('انا بوت سيرفر r4mzyy');
-  }
-});
 
 client.once('ready', () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
@@ -207,36 +199,27 @@ client.on(Events.InteractionCreate, async interaction => {
 //   }
 // });
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
-
+const genAI = new GoogleGenerativeAI(process.env.OPENAI_API_KEY);
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  if (!ALLOWED_CHANNEL_ID_AI.includes(message.channelId)) return 
 
-  const response = await openai.chat.completions
-    .create({
-      model: 'gpt-4',
-      messages: [
-        {
-          // name
-          role: 'system',
-          content: 'chat gpt is a freun'
+  if (message.content.startsWith('!gemini')) {
+    const prompt = message.content.replace('!gemini', '').trim();
 
-        },
-        {
-          // name
-          role: 'user',
-          content: message.content,
-        }
-      ]
-    })
-    .catch((error) => console.error('erorr:\n', error))
-  message.reply(response.choices[0].message.content)
+    try {
+      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      message.reply(text);
+    } catch (err) {
+      console.error(err);
+      message.reply("حصل خطأ أثناء محاولة الاتصال بـ Gemini.");
+    }
+  }
 });
-
 
 
 
